@@ -1,0 +1,69 @@
+---
+- hosts: all
+  gather_facts: no
+  pre_tasks:
+    - name: 'install python2'
+      raw: sudo apt-get -y install python-simplejson
+  become: yes
+  remote_user: vagrant
+
+  
+  tasks:
+    - name: Copy ceph list file  
+      copy:
+        src: files/ceph.list
+        dest: /etc/apt/sources.list.d/ceph.list
+        mode: 0644
+
+    - name: Add an Apt signing key, uses whichever key is at the URL
+      apt_key:
+        url: https://download.ceph.com/keys/release.asc
+        state: present
+
+    - name: Run the "apt-get update" 
+      apt:
+          update_cache: yes
+
+
+    - name: Install required packages
+      apt: 
+          name: "{{ packages }}"
+      vars:
+          packages:
+              - language-pack-ru  
+              - ceph-deploy
+              - ntp
+              - openssh-server
+
+    - hostname:
+          name: admin
+ 
+    - name: Create a 2048-bit SSH key for user ceph_admin in ~ceph_admin/.ssh/id_rsa
+      user:
+          name: ceph_admin
+          groups: sudo
+          generate_ssh_key: yes
+          ssh_key_bits: 2048
+          ssh_key_file: .ssh/id_rsa
+
+    - fetch:
+        src: /home/ceph_admin/.ssh/id_rsa.pub
+        dest: /tmp/id_rsa.pub
+        flat: yes
+
+
+    - name: Copy file ceph_admin for run command wothout password
+      copy:
+        src: files/ceph_admin.sudors
+        dest: /etc/sudoers.d/ceph_admin
+        mode: 0440
+
+    - name: Update /etc/hosts
+      lineinfile: 
+          path: /etc/hosts
+          line: "{{ item.line }}"
+      with_items:
+          - { line : '192.168.77.10 node1' }
+          - { line : '192.168.77.20 node2' }
+          - { line : '192.168.77.30 node3' }    
+        
