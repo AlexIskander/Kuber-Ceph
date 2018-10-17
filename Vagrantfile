@@ -17,7 +17,7 @@ config.vm.define "admin" do |admin|
     admin.vm.network "private_network", ip: "192.168.77.5"
     
     admin.vm.provision "ansible" do |ansible|
-        ansible.playbook="ansible/playbook.yml"
+        ansible.playbook="ansible/admin.yml"
         # Run commands as root.
         ansible.become = true
     end
