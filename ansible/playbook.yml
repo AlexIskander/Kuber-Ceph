@@ -65,5 +65,12 @@
       with_items:
           - { line : '192.168.77.10 node1' }
           - { line : '192.168.77.20 node2' }
-          - { line : '192.168.77.30 node3' }    
+          - { line : '192.168.77.30 node3' }
+
+    - name: Copy file for install ceph  
+      copy:
+        src: files/install_ceph.sh
+        dest: /home/ceph_admin
+        mode: 0644
+    
         
