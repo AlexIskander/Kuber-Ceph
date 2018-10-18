@@ -11,3 +11,5 @@ ceph-deploy mon create-initial
 ceph-deploy admin node1 node2 node3
 
 ceph-deploy osd create  node1:/dev/sdc node2:/dev/sdc node3:/dev/sdc
+
+ssh node1 sudo ceph osd pool create kube 100 100

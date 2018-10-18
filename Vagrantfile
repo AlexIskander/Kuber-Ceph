@@ -24,8 +24,6 @@ config.vm.define "admin" do |admin|
 end
 
 
-
-
 config.vm.define "node1" do |node1|
     node1.vm.network "private_network", ip: "192.168.77.10"
     node1.vm.hostname = "node1"
@@ -38,7 +36,7 @@ config.vm.define "node1" do |node1|
         vb.customize ['storageattach', :id, '--storagectl', 'SCSI', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
     end
     node1.vm.provision "ansible" do |ansible|
-        ansible.playbook="ansible/node.yml"
+        ansible.playbook="ansible/node_master.yml"
         # Run commands as root.
         ansible.become = true
     end

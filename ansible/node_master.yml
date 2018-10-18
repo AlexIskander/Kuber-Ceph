@@ -1,0 +1,74 @@
+---
+- hosts: all
+  gather_facts: no
+  pre_tasks:
+    - name: 'install python2'
+      raw: sudo apt-get -y install python-simplejson
+  become: yes
+  remote_user: vagrant
+
+  
+  tasks:
+    - name: Copy kubernetes list file  
+      copy:
+        src: files/kuber.list
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        mode: 0644
+
+    - name: Add an Apt signing key, uses whichever key is at the URL
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Run the "apt-get update" 
+      apt:
+          update_cache: yes
+
+    - name: Install required packages
+      apt: 
+          name: "{{ packages }}"
+      vars:
+          packages:
+              - language-pack-ru  
+              - ntp
+              - ntpdate
+              - docker.io
+              - kubelet 
+              - kubeadm 
+              - kubernetes-cni 
+
+    - name: Creater user ceph_admin
+      user:
+          name: ceph_admin
+          groups: sudo
+
+    - name: Set authorized key took from file
+      authorized_key:
+          user: ceph_admin
+          state: present
+          key: "{{ lookup('file', '/tmp/id_rsa.pub') }}"
+
+    - name: Copy file ceph_admin for run commands wothout password 
+      copy:
+        src: files/ceph_admin.sudors
+        dest: /etc/sudoers.d/ceph_admin
+        mode: 0440
+
+    - name: Creater user kube
+      user:
+          name: kube
+
+    - name: Copy  
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dst }}"
+        owner: kube
+        group: kube
+        mode: 0644
+      with_items:
+          - { src: 'files/account.yaml', dst: '/home/kube/account.yaml' }
+          - { src: 'files/ceph_storage.yaml', dst: '/home/kube/ceph_storage.yaml' }
+          - { src: 'files/test_pod.yaml', dst: '/home/kube/est_pod.yaml' }
+          - { src: 'files/Dockerfile', dst: '/home/kube/Dockerfile' }
+
+
