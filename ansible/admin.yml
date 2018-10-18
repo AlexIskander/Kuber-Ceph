@@ -71,6 +71,8 @@
       copy:
         src: files/install_ceph.sh
         dest: /home/ceph_admin
-        mode: 0644
+        owner: ceph_admin
+        group: ceph_admin 
+        mode: 0755
     
         
