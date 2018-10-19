@@ -1,48 +1,85 @@
 #!/bin/bash
+
+set -e
+
 USER=kube
+CTR_FILE=/etc/kubernetes/manifests/kube-controller-manager.yaml
+KUBE_TOKEN=/tmp/kuber_connect_token
+IP_MASTER=192.168.77.10
+POD_NET=10.244.0.0/16
+TOKEN=/tmp/token
 
-#sudo ceph osd pool create kube 100 100
-ceph auth get-or-create client.kube mon 'allow r' osd 'allow rwx pool=kube'
-ceph auth get-key client.admin > /etc/ceph/client.admin
-ceph auth get-key client.kube > /etc/ceph/ceph.client.kube.keyring
-
-kubeadm init --apiserver-advertise-address=192.168.77.10 --pod-network-cidr=10.244.0.0/16 | tee  /tmp/for_connect
+URL_FLANEL=https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+URL_DASHBORD=https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
 
 
-#useradd -s /bin/bash -m kube
-mkdir ~kube/.kube
-cp /etc/kubernetes/admin.conf ~kube/.kube/config
-chown kube: ~kube/.kube/config
+create_ceph_user(){
+    ceph auth get-or-create client.${USER} mon 'allow r' osd 'allow rwx pool=kube'
+    ceph auth get-key client.admin > /etc/ceph/client.admin
+    ceph auth get-key client.${USER} > /etc/ceph/ceph.client.${USER}.keyring
+}
+create_ceph_user
 
-su - kube -c "kubectl taint nodes --all node-role.kubernetes.io/master-"
-su - kube -c "kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default"
+init_kuber(){
+    kubeadm init --apiserver-advertise-address=${IP_MASTER} --pod-network-cidr=${POD_NET} | tee  ${KUBE_TOKEN}
+    #useradd 
+    mkdir ~kube/.kube
+    cp /etc/kubernetes/admin.conf ~kube/.kube/config
+    chown kube: ~kube/.kube/config
 
-su - kube -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
-# cheack
-su - kube -c "kubectl -n kube-system get pods"
+    su - ${USER} -c "kubectl taint nodes --all node-role.kubernetes.io/master-"
+    sleep 25
+    su - ${USER} -c "kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default"
+    sleep 15
+    su - ${USER} -c "kubectl apply -f ${URL_FLANEL}"
+    # cheack
 
-sleep 2
+    for i in {1..4}; do
+        su - ${USER} -c "kubectl -n kube-system get pods";
+        sleep 25
+    done
+}
+init_kuber
+
+
 
 #kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
-su - kube -c "kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml"
-su - kube -c "kubectl -n kube-system create -f ~/account.yaml"
-su - kube -c "kubectl proxy &"
+su - ${USER} -c "kubectl create -f ${URL_DASHBORD}" && sleep 25
+su - ${USER} -c "kubectl -n kube-system create -f account.yaml"
+su - ${USER} -c "kubectl proxy &"
+su - ${USER} -c "kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}') > ${TOKEN}"
 
-su - kube -c "kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}') | tee /tmp/token"
+#rbd create
+create_rbd(){
+    chmod 777 /var/run/docker.sock
+    docker build -t "my-kube-controller-manager:v1.12.1" /home/kube/
+    docker images | grep my-kube-controller-manager
+    docker run my-kube-controller-manager:v1.12.1 whereis rbd
+    #/etc/kubernetes/manifests/kube-controller-manager.yaml
+    sed -e "s/k8s.gcr.io\/kube-controller-manager:v1.12.1/my-kube-controller-manager:v1.12.1/g" ${CTR_FILE} -i
 
-#rbl create
-chmod 777 /var/run/docker.sock
-docker build -t "my-kube-controller-manager:v1.12.1" /home/kube/
+    su - ${USER} -c "kubectl -n kube-system describe pods | grep kube-controller"
+}
+create_rbd
 
-docker images | grep my-kube-controller-manager
-docker run my-kube-controller-manager:v1.12.1 whereis rbd
-#/etc/kubernetes/manifests/kube-controller-manager.yaml
-sed -e "s/k8s.gcr.io\/kube-controller-manager:v1.12.1/my-kube-controller-manager:v1.12.1/g" /etc/kubernetes/manifests/kube-controller-manager.yaml -i
+su - ${USER} -c 'kubectl create secret generic ceph-secret --type="kubernetes.io/rbd" --from-file=/etc/ceph/client.admin --namespace=kube-system'
+su - ${USER} -c 'kubectl create secret generic ceph-secret-kube --type="kubernetes.io/rbd" --from-file=/etc/ceph/ceph.client.kube.keyring  --namespace=default'
+su - ${USER} -c "kubectl create -f ceph_storage.yaml"
+sleep 5
+su - ${USER} -c "kubectl get storageclass"
+su - ${USER} -c "kubectl create -f test_pod.yaml"
+sleep 5
+su - ${USER} -c "kubectl get pods"
+sleep 5
+su - ${USER} -c "kubectl get pvc"
+sleep 5
+su - ${USER} -c "kubectl get pv" 
 
-su - kube -c "kubectl -n kube-system describe pods | grep kube-controller"
-su - kube -c 'kubectl create secret generic ceph-secret --type="kubernetes.io/rbd" --from-file=/etc/ceph/client.admin --namespace=kube-system'
-su - kube -c 'kubectl create secret generic ceph-secret-kube --type="kubernetes.io/rbd" --from-file=/etc/ceph/ceph.client.kube.keyring  --namespace=default'
-su - kube -c "kubectl create -f ceph_storage.yaml"
-su - kube -c "kubectl get storageclass"
-su - kube -c "kubectl create -f test_pod.yaml"
+cat ${KUBE_TOKEN} | grep "kubeadm join" 
+
+
+exit 0
+
+
+
 
