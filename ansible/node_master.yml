@@ -78,6 +78,7 @@
       with_items:
           - { src: 'files/account.yaml', dst: '/home/kube/account.yaml' }
           - { src: 'files/ceph_storage.yaml', dst: '/home/kube/ceph_storage.yaml' }
+          - { src: 'files/test_pod.yaml', dst: '/home/kube/test_pod.yaml' }
           - { src: 'files/storege_claim3.yml', dst: '/home/kube/storege_claim3.yml' }
           - { src: 'files/django_rs.yml', dst: '/home/kube/django_rs.yml' }
           - { src: 'files/django_svc.yml', dst: '/home/kube/django_svc.yml' }
