@@ -1,0 +1,32 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: django-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: django-app
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: django-app
+    spec:
+      volumes:
+      - name: ceph-pvc-storage
+        persistentVolumeClaim:
+          claimName: claim3
+      containers:
+      - name: django-pod
+        image: 11111111ukrnet/django_app:firsttry
+        ports:
+        - containerPort: 8888
+        volumeMounts:
+        - name: ceph-pvc-storage
+          mountPath: /opt/OpenWeatherMap/database

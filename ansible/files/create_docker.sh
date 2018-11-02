@@ -70,7 +70,7 @@ su - ${USER} -c "kubectl get storageclass"
 su - ${USER} -c "kubectl create -f test_pod.yaml"
 su - ${USER} -c "kubectl create -f storege_claim3.yml"
 sleep 5
-su - ${USER} -c "kubectl create -f django_rs.yml"
+su - ${USER} -c "kubectl create -f django_dp.yml"
 su - ${USER} -c "kubectl get pods"
 sleep 5
 su - ${USER} -c "kubectl create -f django_svc.yml"
