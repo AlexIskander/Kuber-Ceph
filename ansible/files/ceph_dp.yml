@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: ceph-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ceph-app
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: ceph-app
+    spec:
+      volumes:
+      - name: cephfs
+        cephfs:
+          monitors:
+          - 192.168.77.10:6789
+          - 192.168.77.20:6789
+          - 192.168.77.30:6789
+          user: admin
+          secretRef:
+            name: ceph-secret
+          readOnly: true
+      containers:
+      - name: ceph-pod
+        image: nginx:latest
+        ports:
+        - containerPort: 8888
+        volumeMounts:
+        - name: cephfs
+          mountPath: /mnt/cephfs
+

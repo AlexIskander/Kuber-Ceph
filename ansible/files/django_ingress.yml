@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: django-ingress
+spec:
+  rules:
+  - host: my.django-app.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: django-svc
+          servicePort: 80 
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.168.77.10 

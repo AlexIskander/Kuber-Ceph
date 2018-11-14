@@ -67,7 +67,7 @@ su - ${USER} -c 'kubectl create secret generic ceph-secret-kube --type="kubernet
 su - ${USER} -c "kubectl create -f ceph_storage.yaml"
 sleep 5
 su - ${USER} -c "kubectl get storageclass"
-su - ${USER} -c "kubectl create -f test_pod.yaml"
+#su - ${USER} -c "kubectl create -f test_pod.yaml"
 su - ${USER} -c "kubectl create -f storege_claim3.yml"
 sleep 5
 su - ${USER} -c "kubectl create -f django_dp.yml"
