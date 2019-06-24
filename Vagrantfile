@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-
+# comment
 config.vm.box = "ubuntu/xenial64"
 config.vm.boot_timeout = 120
 config.vm.synced_folder '.', '/vagrant', disabled: true
